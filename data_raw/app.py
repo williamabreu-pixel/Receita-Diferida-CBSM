@@ -2,6 +2,7 @@
 """Dashboard Streamlit. Rodar com:  streamlit run app.py"""
 
 import io
+import tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -823,6 +824,40 @@ def render_aba_dados_grafico():
         st.dataframe(carregar_aba_bruta(config.ABA_DADOS_GRAFICO), width="stretch", hide_index=True)
 
 
+def _garantir_arquivo_excel():
+    """dados.xlsx contém números financeiros reais da CBSM e nunca é
+    versionado no repositório (ver .gitignore). Em ambientes onde o arquivo
+    não está no disco (ex.: app hospedado no Streamlit Community Cloud),
+    pede upload manual na própria tela: o arquivo fica só na sessão do
+    navegador de quem o enviou, nunca é gravado no GitHub."""
+    if Path(config.ARQUIVO_EXCEL).exists():
+        return
+
+    caminho_sessao = st.session_state.get("_caminho_excel_sessao")
+    if caminho_sessao and Path(caminho_sessao).exists():
+        config.ARQUIVO_EXCEL = caminho_sessao
+        return
+
+    st.warning(
+        "**dados.xlsx não encontrado neste servidor.** Este arquivo contém "
+        "dados financeiros reais da CBSM e, por segurança, nunca é incluído "
+        "no repositório. Envie sua cópia local para continuar — o arquivo "
+        "fica somente nesta sessão do navegador."
+    )
+    arquivo = st.file_uploader("Envie o dados.xlsx", type=["xlsx"])
+    if arquivo is None:
+        st.stop()
+
+    tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+    tmp.write(arquivo.getvalue())
+    tmp.close()
+    st.session_state["_caminho_excel_sessao"] = tmp.name
+    config.ARQUIVO_EXCEL = tmp.name
+    # Novo upload: descarta qualquer resultado calculado a partir de um
+    # dados.xlsx anterior (o cache do Streamlit é compartilhado entre sessões).
+    st.cache_data.clear()
+
+
 def main():
     # Evita que o navegador traduza automaticamente termos de negócio em
     # inglês (ex.: "Breakage", "Spread") para português, o que corrompe os
@@ -845,6 +880,7 @@ def main():
     """, unsafe_allow_javascript=True)
     _aplicar_logo_canto()
     _render_cabecalho()
+    _garantir_arquivo_excel()
     try:
         res = carregar_resultado(None)
     except (FileNotFoundError, ValueError, KeyError) as e:
