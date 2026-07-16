@@ -1,0 +1,31 @@
+# Dados reais — nunca versionar (contém números financeiros da CBSM)
+data_raw/dados.xlsx
+*.xlsx
+*.xls
+
+# Artefatos gerados (derivados de dados.xlsx, contêm números reais)
+dashboard.html
+Documentacao_Sistema_CBSM.docx
+
+# Scripts e despejos de investigação (scratch, não fazem parte do app)
+data_raw/inspecionar_*.py
+data_raw/testar_*.py
+data_raw/validar_*.py
+data_raw/*_dump.txt
+data_raw/sheetnames.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Ambientes virtuais
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
