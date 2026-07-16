@@ -6,6 +6,7 @@ data_raw/dados.xlsx
 # Artefatos gerados (derivados de dados.xlsx, contêm números reais)
 dashboard.html
 Documentacao_Sistema_CBSM.docx
+Manual_Operacional_Sistema_CBSM.docx
 
 # Scripts e despejos de investigação (scratch, não fazem parte do app)
 data_raw/inspecionar_*.py
