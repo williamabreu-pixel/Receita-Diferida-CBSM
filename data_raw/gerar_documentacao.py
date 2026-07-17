@@ -94,7 +94,8 @@ def gerar():
                      "para explorar cada parte da planilha original.")
 
     # 2. Motores de receita
-    _titulo(doc, "2. Motores de receita (4)")
+    _titulo(doc, "2. Motores de receita")
+    _paragrafo(doc, "Conciliação (Controle U1 / balancete) — 4 motores:", negrito=True)
     _tabela(doc, ["Motor", "O que é", "Tipo de diferimento"], [
         ["Breakage", "Expiração estimada de pontos que se tornam receita.",
          "Diferimento 48 meses (linear por competência de emissão)"],
@@ -104,6 +105,24 @@ def gerar():
          "Fato gerador (resgate)"],
         ["Promodotz", "Pontos promocionais.", "Fato gerador (evento)"],
     ])
+    _paragrafo(doc, "Receita reconhecida no resultado (gráficos \"Receita por Categoria\") — base "
+                     "DIFERENTE, por decisão do usuário: sempre que o app mostra receita no resultado, "
+                     "a fonte é a coluna \"Classificação Receita\" da aba DRE 2026 "
+                     "(data_loader.load_dre_classificacao_receita), não a Base Receita Motor. São "
+                     "5 categorias:", negrito=True)
+    _tabela(doc, ["Categoria", "Origem na DRE", "Tipo de diferimento"], [
+        ["Breakage", "Classificação Receita = Breakage", "Diferimento 48 meses"],
+        ["Spread", "Classificação Receita = Spread", "Diferimento 48 meses"],
+        ["Trocas", "Classificação Receita = Receita de Trocas (exceto conta 3111160)", "Fato gerador (resgate)"],
+        ["Receita Projetos Especiais", "Conta 3111160 (\"Receita de Resgate de Dotz - Split Fee e "
+         "Projetos Especiais\"), separada do restante de Receita de Trocas", "Fato gerador (resgate)"],
+        ["Promodotz", "EXCLUÍDO destes gráficos — é redutor de custo, não receita "
+         "(conta 3211010, \"(-) Custo de Troca Promodotz\")", "—"],
+    ])
+    _paragrafo(doc, "Atenção: o \"Trocas\" da DRE (gráficos de resultado) é um valor DIFERENTE do "
+                     "\"Trocas (Custo do Produto)\" da conciliação/Controle U1 — vêm de bases contábeis "
+                     "distintas. O app deixa isso explícito na aba \"Receita Diferida por Categoria\".",
+               italico=True, cor=CINZA)
 
     # 3. Arquitetura
     _titulo(doc, "3. Arquitetura")
@@ -116,14 +135,21 @@ def gerar():
          "(Quadros A/G), calcula passivo contábil × controle. Não altera o RAW."],
         ["gerador_lancamentos.py", "Negócio", "Gera lançamentos de ajuste (partida dobrada: "
          "Débito=J se J>0, Crédito=-J se J<0) para os desvios encontrados."],
-        ["app.py", "Apresentação", "Dashboard Streamlit interativo — 10 abas (ver seção 5)."],
-        ["export_html.py", "Apresentação (opcional)", "Snapshot HTML estático — só quando pedido "
-         "explicitamente; o app Streamlit é o alvo real."],
+        ["app.py", "Apresentação", "Dashboard Streamlit interativo — 9 abas (ver seção 5). Inclui "
+         "gate de upload do dados.xlsx (_garantir_arquivo_excel) para funcionar também quando "
+         "hospedado sem o arquivo local (Streamlit Community Cloud)."],
+        ["export_html.py", "Apresentação (opcional)", "Snapshot HTML estático AUTOCONTIDO (logo e "
+         "Plotly.js embutidos em base64, funciona offline) espelhando as 9 abas do app.py, com as "
+         "mesmas cores Dotz e a mesma base de receita (DRE). Só quando pedido explicitamente — o "
+         "app Streamlit ao vivo continua sendo o alvo real; o HTML não tem filtros interativos."],
         ["gerar_documentacao.py", "Documentação", "Gera este documento. Rodar de novo após "
          "mudanças relevantes no projeto."],
+        ["gerar_manual_operacional.py", "Documentação", "Gera o Manual Operacional (.docx) — "
+         "passo a passo de uso para quem opera o sistema no dia a dia (atualizar dados, reiniciar "
+         "o app, gerar o HTML, pedir melhorias). Documento separado da documentação técnica."],
         ["gerar_logo_placeholder.py", "Identidade visual (opcional)", "Gera um ícone Dotz "
          "placeholder (círculo laranja + \"DZ\") via Pillow, enquanto o arquivo oficial da "
-         "marca não é exportado — ver seção 5.1."],
+         "marca não é exportado — ver seção 6."],
     ])
     _paragrafo(doc, "Arquitetura híbrida: os números ATUAIS/de conciliação vêm do balancete e da U1 "
                      "(via data_loader). A PROJEÇÃO usa um motor atuarial de safras "
@@ -137,8 +163,16 @@ def gerar():
     _bullet(doc, "A Base Receita Motor já vem positiva (sentido de negócio) — nunca inverter o sinal dela.")
     _bullet(doc, "Contas de passivo: grupos 219 (circulante) e 231 (não circulante). Usar só contas "
                   "ANALÍTICAS de 7 dígitos, para evitar dupla contagem pai/filho da hierarquia SAP.")
-    _bullet(doc, "Split CP/LP não é derivável por prefixo de conta — vem da aba Dados_Gráfico "
-                  "(quadro Receita Diferida CP/LP), já incorporado à aba Passivo Diferido do dashboard.")
+    _bullet(doc, "Split CP/LP não é derivável por prefixo de conta. Fórmula validada via leitura "
+                  "das FÓRMULAS reais do Excel (openpyxl, data_only=False): U1 - Movimentação!G60 = "
+                  "G8+G10+G19+G37 (idem I60 para LP) — soma dos passivo_cp/passivo_lp dos 4 "
+                  "cabeçalhos de bloco (Subtotal Split Fee, Breakage, Custo do Produto, Spread). "
+                  "Implementado em data_loader.calcular_passivo_cp_lp(), bate ao centavo com a "
+                  "mesma fonte que a aba Dados_Gráfico usa (coluna \"CBSM\"), mas SEM os ajustes de "
+                  "Netpoints/Dotz Pay de lá (fora do escopo deste sistema) — eliminou a dependência "
+                  "da aba Dados_Gráfico para este número e corrigiu um bug pré-existente do "
+                  "dashboard (que antes lia a coluna \"total_ajustado\", incluindo Netpoints/Dotz "
+                  "Pay indevidamente).")
     _bullet(doc, "_to_float tolera formato BR (1.234,56) e US/Excel (1234.56) — decide pela presença "
                   "de vírgula. Nunca remover o ponto decimal cegamente (já inflou valores 100x no passado).")
     _bullet(doc, "Contas contábeis são sempre TEXTO, nunca número (ex.: '3111160', não 3111160.0).")
@@ -146,32 +180,35 @@ def gerar():
                   "no Excel — nunca adivinhados pelo código.")
 
     # 5. Abas do dashboard
-    _titulo(doc, "5. As 10 abas do dashboard (app.py)")
+    _titulo(doc, "5. As 9 abas do dashboard (app.py)")
     abas = [
         ("📊 Visão Geral / Conciliação", "Alerta verde/vermelho, cards de passivo (contábil/controle/delta), "
-         "gráfico de receita por categoria, rosca de Composição do Passivo Diferido, e a tabela de "
-         "Conciliação (Total Passivo / Passivo Recalculado / Receita por bloco)."),
-        ("💰 Receita Diferida por Categoria", "Filtros de competência e motor, gráfico de barras "
-         "empilhadas, resumo por competência × motor, e detalhe expansível linha a linha com o "
-         "tipo de diferimento de cada categoria."),
+         "gráfico de receita por categoria (base DRE), rosca de Composição do Passivo Diferido, "
+         "tabela de Conciliação (Total Passivo / Passivo Recalculado / Receita por bloco) e, "
+         "incorporado ao final da aba, o conteúdo da antiga aba Dados_Gráfico: quadro "
+         "\"Expectativa de Realização da Receita\" (vintage × ano de realização) e os quadros "
+         "Consolidado / Receita Diferida CP/LP."),
         ("📉 Passivo Diferido", "Composição do passivo (rosca + tabela por bloco) e o split "
-         "Circulante (CP) × Não Circulante (LP), fonte: aba Dados_Gráfico, conferido contra o "
+         "Circulante (CP) × Não Circulante (LP) — hoje calculado direto da fórmula da U1 - "
+         "Movimentação (ver seção 4), sem depender da aba Dados_Gráfico — conferido contra o "
          "Passivo Total do Controle U1."),
-        ("U1.5_Par._Emissão Margem", "Motor atuarial do Spread: quadro \"Receita a Reconhecer por "
-         "Safra × Competência\" (2022-2026, com total) + gráfico de barras empilhadas, e a série "
-         "completa por safra em ordem decrescente (2026 primeiro)."),
-        ("U1.4_Par._Emissão Expiração", "Mesma estrutura da U1.5, para o motor de Breakage."),
-        ("U1.6_Emissão_Resgates", "Série mensal de resgate de pontos e o quadro de conferência "
-         "\"Tie-in Contábil × Analyser\"."),
-        ("Dados_Gráfico", "Quadro principal \"Expectativa de Realização da Receita\" (vintage × "
-         "ano de realização, 2022-2030) com gráfico de barras empilhadas, mais os quadros "
-         "Consolidado e Receita Diferida CP/LP."),
+        ("💰 Receita Diferida por Categoria", "Base DRE 2026 (5 categorias, ver seção 2). Filtros "
+         "de competência e categoria, gráfico de barras empilhadas com linha de Receita Bruta "
+         "total, resumo por competência × categoria, e detalhe expansível linha a linha com o "
+         "tipo de diferimento de cada categoria."),
         ("🧾 Faturamento de Pontos", "Resumo do faturamento do ano por categoria (valor de vendas "
          "e quantidade de pontos), com detalhe por competência × categoria recolhido e exportável "
          "em Excel."),
         ("🔧 Controle U1", "Conciliação por grupo de negócio: 4 cartões (nomeados com o texto "
          "literal da planilha) cruzando Passivo Total × Passivo Recalculado × Check × Receita, "
          "cada um expansível a nível de conta contábil."),
+        ("U1.4_Par._Emissão Expiração", "Motor atuarial do Breakage: quadro \"Receita a Reconhecer "
+         "por Safra × Competência\" (2022-2026, com total) + gráfico de barras empilhadas, check "
+         "de conciliação com a DRE (mês a mês e acumulado, considerando o mês de apuração "
+         "corrente), e a série completa por safra em ordem decrescente (2026 primeiro)."),
+        ("U1.5_Par._Emissão Margem", "Mesma estrutura da U1.4, para o motor de Spread."),
+        ("U1.6_Emissão_Resgates", "Série mensal de resgate de pontos e o quadro de conferência "
+         "\"Tie-in Contábil × Analyser\"."),
         ("🧾 Lançamentos de Ajuste", "Diário de ajuste gerado a partir dos desvios de conciliação, "
          "com checks de partida dobrada e cobertura, e exportação em Excel."),
     ]
@@ -228,22 +265,79 @@ def gerar():
     _bullet(doc, "O arquivo de dados deve se chamar dados.xlsx e estar na mesma pasta dos .py "
                   "(data_raw). Fechar o Excel antes de eu (ou o app) precisar ler o arquivo.")
 
-    # 9. Itens em aberto
-    _titulo(doc, "9. Itens em aberto")
+    # 9. Publicação e acesso
+    _titulo(doc, "9. Publicação e acesso")
+    _paragrafo(doc, "GitHub (backup do código-fonte):", negrito=True)
+    _bullet(doc, "Repositório: github.com/williamabreu-pixel/Receita-Diferida-CBSM, branch main. "
+                  "Público (decisão consciente: nenhum dado financeiro real é versionado — "
+                  "dados.xlsx, dashboard.html e os .docx gerados estão no .gitignore desde o "
+                  "primeiro commit).")
+    _bullet(doc, "requirements.txt e README.md criados para permitir que qualquer colaborador "
+                  "clone o repositório e rode localmente (precisa fornecer seu próprio dados.xlsx).")
+    _paragrafo(doc, "Cópia em rede (Google Drive compartilhado):", negrito=True)
+    _bullet(doc, "A pasta local do projeto (dentro do OneDrive) é sincronizada automaticamente por "
+                  "um Google Drive for Desktop configurado na máquina, aparecendo também em "
+                  "G:\\Drives compartilhados\\Controladoria\\...\\2.1 - Receita Diferida\\"
+                  "Sistema_CBSM — inclusive o dados.xlsx real, aceitável porque é uma pasta de "
+                  "acesso restrito da empresa (diferente do GitHub). Não é necessário copiar nada "
+                  "manualmente para lá.")
+    _paragrafo(doc, "Acesso local em rede (Streamlit rodando na máquina):", negrito=True)
+    _bullet(doc, "Regra de Firewall do Windows criada (\"Streamlit CBSM 8501\", TCP 8501, entrada, "
+                  "todos os perfis) permitindo acesso de outras máquinas na mesma rede local via "
+                  "http://<IP-da-máquina>:8501.")
+    _bullet(doc, "Limitação importante: só funciona para quem estiver na MESMA rede física/Wi-Fi "
+                  "da máquina que roda o app — um IP de rede local (ex.: 192.168.x.x) não é "
+                  "alcançável de fora dessa rede (nem por VPN, nem de outro escritório). Também "
+                  "depende da máquina ficar ligada com o processo do Streamlit rodando.")
+    _paragrafo(doc, "Streamlit Community Cloud (URL pública, independe de rede/máquina ligada):",
+               negrito=True)
+    _bullet(doc, "app.py recebeu um gate de upload (_garantir_arquivo_excel): se dados.xlsx não "
+                  "existir no disco do servidor, a tela pede upload manual do arquivo, que fica só "
+                  "na sessão do navegador (nunca é persistido).")
+    _bullet(doc, "Status em 16/07/2026: deploy tentado em share.streamlit.io, mas bloqueado. "
+                  "Causa raiz identificada via DevTools (aba Network do navegador): a chamada do "
+                  "backend do Streamlit para o GitHub (api/v2/github/query-repository) retorna "
+                  "404 — o GitHub App do Streamlit nunca foi instalado de fato na conta "
+                  "(distinto de uma autorização OAuth comum, que foi concedida mas não resolve "
+                  "isso). Repositório já foi tornado público para eliminar a hipótese de "
+                  "permissão de repo privado, sem sucesso. Próximo passo: instalar o GitHub App "
+                  "do Streamlit diretamente pela Marketplace do GitHub (github.com/apps/...), "
+                  "escolhendo \"All repositories\" — retomar isso na próxima sessão.")
+
+    # 10. Itens em aberto
+    _titulo(doc, "10. Itens em aberto")
+    _bullet(doc, "Concluir a publicação no Streamlit Community Cloud — falta instalar o GitHub App "
+                  "corretamente (ver seção 9); é o passo que falta para ter uma URL pública "
+                  "funcionando, independente de rede local ou da máquina ligada.")
     _bullet(doc, "Segundo tipo de lançamento de ajuste (reclassificação CP × LP) em "
                   "gerador_lancamentos.py — agora que o split CP/LP está disponível na aba "
                   "Passivo Diferido, falta decidir se/como gerar o lançamento contábil correspondente.")
     _bullet(doc, "Substituir o logo placeholder (gerar_logo_placeholder.py) pelo arquivo oficial "
                   "da marca (logo_dotz.png / icone_dotz.png) assim que exportado — hoje é só uma "
                   "aproximação, sem a tipografia customizada do \"Z\" do logo real.")
+    _bullet(doc, "Limpar os scripts de investigação usados para descobrir a fórmula do CP/LP "
+                  "(inspecionar_*.py, testar_cp_lp.py, validar_cp_lp_real.py, *_dump.txt) — já "
+                  "excluídos do Git via .gitignore, mas ainda presentes no disco/pasta de rede.")
 
-    # 10. Histórico de atualizações
-    _titulo(doc, "10. Histórico de atualizações")
+    # 11. Histórico de atualizações
+    _titulo(doc, "11. Histórico de atualizações")
     _paragrafo(doc, "Documentação viva — cada sessão de trabalho relevante deve somar uma entrada "
                      "aqui (nova entrada no topo, com data fixa) antes de regerar o arquivo. As datas "
                      "abaixo são fixas no texto — não usar datetime.date.today() para elas, senão "
                      "o histórico troca de data toda vez que o documento é regerado.",
                italico=True, cor=CINZA)
+    _bullet(doc, "Split CP/LP corrigido com a fórmula real da U1 - Movimentação (lida via "
+                  "openpyxl), eliminando a dependência da aba Dados_Gráfico e corrigindo um bug "
+                  "pré-existente do dashboard (Netpoints/Dotz Pay entrando indevidamente no "
+                  "número). Receita por Categoria migrada para a base DRE 2026 (coluna "
+                  "Classificação Receita), com a nova categoria \"Receita Projetos Especiais\" "
+                  "separada (conta 3111160) e Promodotz excluído dos gráficos de resultado. "
+                  "Projeto publicado no GitHub (repositório público, sem dados reais). "
+                  "export_html.py reescrito para espelhar as 9 abas completas do app com as cores "
+                  "Dotz. Manual Operacional criado (gerar_manual_operacional.py). Tentativas de "
+                  "publicação: rede local (funciona só na mesma rede física) e Streamlit Community "
+                  "Cloud (bloqueado por instalação pendente do GitHub App — ver seção 9).",
+              "16/07/2026 — ")
     _bullet(doc, "Identidade visual Dotz aplicada em app.py com a paleta OFICIAL da marca "
                   "(#FF4F0D laranja, #FEC114 amarelo, #009F3C verde, #000000 preto, #D82598 "
                   "magenta, #AF1010 vermelho, #E3D2C8 bege) — motores, roscas (Promodotz mantido "
