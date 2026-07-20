@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 PREFIXOS_PASSIVO = ("219", "231")
 _COMPETENCIA_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
-TOLERANCIA = 1.0
+TOLERANCIA = 1.0  # Passivo Diferido Total (quadros A/G) e check conta-a-conta da U1 — deve fechar exato.
+TOLERANCIA_CONTA = 999.0  # Receita por conta/motor (quadros "Receita/*") — folga para ruído de arredondamento.
 
 
 @dataclass
@@ -83,7 +84,9 @@ def conciliar(blocos, passivo_contabil, receita_agg):
         })
     conc = pd.DataFrame(linhas)
     conc["delta"] = conc["controle"] - conc["contabil"]
-    conc["status"] = conc["delta"].abs().le(TOLERANCIA).map({True: "OK", False: "DIVERGENTE"})
+    tolerancia_linha = conc["quadro"].str.startswith("Receita/").map(
+        {True: TOLERANCIA_CONTA, False: TOLERANCIA})
+    conc["status"] = (conc["delta"].abs() <= tolerancia_linha).map({True: "OK", False: "DIVERGENTE"})
     return conc
 
 
@@ -105,10 +108,10 @@ def executar_pipeline(competencia=None):
         alertas.append(f"❌ Quadro {r['quadro']} — {r['item']}: "
                        f"controle R$ {r['controle']:,.2f} vs contábil "
                        f"R$ {r['contabil']:,.2f} (Δ R$ {r['delta']:,.2f}).")
-    if check_max > TOLERANCIA:
+    if check_max > TOLERANCIA_CONTA:
         alertas.append(f"⚠️ Check conta-a-conta da U1 excede tolerância: R$ {check_max:,.4f}.")
 
-    conciliacao_ok = divergentes.empty and check_max <= TOLERANCIA
+    conciliacao_ok = divergentes.empty and check_max <= TOLERANCIA_CONTA
 
     return ResultadoPipeline(
         receita_por_motor=agg, blocos_controle=blocos, conciliacao=conc,
