@@ -60,12 +60,20 @@ def _desvio_por_bloco(res):
 def gerar_diario(res, competencia_fechamento=None):
     desvios = _desvio_por_bloco(res)
     linhas = []
+    ordem_no_lancamento = {}
     for t in TEMPLATE_LANCAMENTOS:
         j = desvios.get(t.bloco_fonte, 0.0)
         if abs(j) < TOLERANCIA:
             j = 0.0
-        debito = j if j > 0 else 0.0
-        credito = -j if j < 0 else 0.0
+        # Cada lançamento tem 2 linhas (conta principal + contrapartida). A 2ª
+        # linha do par espelha o sinal da 1ª, para a partida dobrada fechar
+        # (débito = crédito) — sem isso, as duas linhas caíam sempre do mesmo
+        # lado e o total de débitos nunca fechava com o de créditos.
+        ordem = ordem_no_lancamento.get(t.lancamento, 0)
+        ordem_no_lancamento[t.lancamento] = ordem + 1
+        j_linha = j if ordem == 0 else -j
+        debito = j_linha if j_linha > 0 else 0.0
+        credito = -j_linha if j_linha < 0 else 0.0
         linhas.append({
             "lancamento": t.lancamento, "conta": t.conta,
             "descricao_conta": t.descricao_conta, "historico": t.historico,
