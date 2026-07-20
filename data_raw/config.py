@@ -1,8 +1,10 @@
 # config.py
 """Configuração central: caminho do Excel e nomes das abas."""
 
-# Nome do arquivo Excel na mesma pasta (renomeie seu arquivo para este nome).
-ARQUIVO_EXCEL = "dados.xlsx"
+# Nome do arquivo Excel na mesma pasta. A partir de 20/07/2026 a base passou a
+# ser atualizada por macros dentro do próprio arquivo — por isso a fonte
+# oficial agora é o .xlsm (macro-enabled), não mais o .xlsx.
+ARQUIVO_EXCEL = "dados.xlsm"
 
 # Abas dentro do Excel (não mude, a menos que os nomes das abas mudem).
 ABA_BALANCETE = "Trial Balance 2026"

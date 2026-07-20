@@ -825,11 +825,11 @@ def render_aba_dados_grafico():
 
 
 def _garantir_arquivo_excel():
-    """dados.xlsx contém números financeiros reais da CBSM e nunca é
-    versionado no repositório (ver .gitignore). Em ambientes onde o arquivo
-    não está no disco (ex.: app hospedado no Streamlit Community Cloud),
-    pede upload manual na própria tela: o arquivo fica só na sessão do
-    navegador de quem o enviou, nunca é gravado no GitHub."""
+    """dados.xlsm (ou dados.xlsx) contém números financeiros reais da CBSM e
+    nunca é versionado no repositório (ver .gitignore). Em ambientes onde o
+    arquivo não está no disco (ex.: app hospedado no Streamlit Community
+    Cloud), pede upload manual na própria tela: o arquivo fica só na sessão
+    do navegador de quem o enviou, nunca é gravado no GitHub."""
     if Path(config.ARQUIVO_EXCEL).exists():
         return
 
@@ -839,22 +839,23 @@ def _garantir_arquivo_excel():
         return
 
     st.warning(
-        "**dados.xlsx não encontrado neste servidor.** Este arquivo contém "
-        "dados financeiros reais da CBSM e, por segurança, nunca é incluído "
-        "no repositório. Envie sua cópia local para continuar — o arquivo "
-        "fica somente nesta sessão do navegador."
+        f"**{config.ARQUIVO_EXCEL} não encontrado neste servidor.** Este arquivo "
+        "contém dados financeiros reais da CBSM e, por segurança, nunca é "
+        "incluído no repositório. Envie sua cópia local para continuar — o "
+        "arquivo fica somente nesta sessão do navegador."
     )
-    arquivo = st.file_uploader("Envie o dados.xlsx", type=["xlsx"])
+    arquivo = st.file_uploader(f"Envie o {config.ARQUIVO_EXCEL}", type=["xlsx", "xlsm"])
     if arquivo is None:
         st.stop()
 
-    tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+    sufixo = Path(arquivo.name).suffix or ".xlsx"
+    tmp = tempfile.NamedTemporaryFile(suffix=sufixo, delete=False)
     tmp.write(arquivo.getvalue())
     tmp.close()
     st.session_state["_caminho_excel_sessao"] = tmp.name
     config.ARQUIVO_EXCEL = tmp.name
     # Novo upload: descarta qualquer resultado calculado a partir de um
-    # dados.xlsx anterior (o cache do Streamlit é compartilhado entre sessões).
+    # arquivo anterior (o cache do Streamlit é compartilhado entre sessões).
     st.cache_data.clear()
 
 

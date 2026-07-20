@@ -736,7 +736,7 @@ def montar_html(res, dre_categoria):
     <p>Conciliação de pontos: emissão, resgate e breakage vs balancete SAP.</p>
   </div>
 </header>
-<div class="gerado-em">Snapshot estático gerado em {agora} a partir de dados.xlsx — não interativo, sem filtros.</div>
+<div class="gerado-em">Snapshot estático gerado em {agora} a partir de {config.ARQUIVO_EXCEL} — não interativo, sem filtros.</div>
 <div class="tabs-wrapper">
   <div class="tab-bar">{tab_bar}</div>
   <div class="tabs-wrapper2">{paineis}</div>
