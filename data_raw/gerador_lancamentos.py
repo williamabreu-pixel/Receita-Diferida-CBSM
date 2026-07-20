@@ -37,21 +37,21 @@ class LinhaTemplate:
 
 
 TEMPLATE_LANCAMENTOS = [
-    LinhaTemplate(1, "2191013", "Passivo Expiração de Pontos - Non Split Fee",
+    LinhaTemplate(1, "2191013", "Receita de Expiração de Pontos - Non Split Fee",
                   "Reconhecimento de receita de expiração (breakage) do período", "Breakage"),
     LinhaTemplate(1, "3111450", "Receita de Expiração de Dotz - Non Split Fee",
                   "Contrapartida — receita de expiração de Dotz", "Breakage"),
-    LinhaTemplate(2, "2311017", "Passivo Custo do Produto - Resgate",
+    LinhaTemplate(2, "2311017", "Prêmios Dotz a Faturar Non Split Fee - LP",
                   "Reconhecimento de receita de resgate (custo do produto) do período", "Custo do Produto"),
-    LinhaTemplate(2, "3111199", "Provisão de Receita",
+    LinhaTemplate(2, "3111199", "Receita de Resgate de Dotz a Faturar",
                   "Contrapartida — provisão de receita (custo do produto)", "Custo do Produto"),
     LinhaTemplate(3, "3316100", "Promo Dotz",
                   "Ajuste Promodotz — contrapartida no resultado", "Promodotz"),
     LinhaTemplate(3, "2311020", "Dotz Promocionais - LP",
                   "Ajuste Promodotz — recomposição do passivo", "Promodotz"),
-    LinhaTemplate(4, "2311011", "Passivo Margem dos Produtos",
+    LinhaTemplate(4, "2311011", "Receita Venda Dotz - Non Split Fee",
                   "Reconhecimento de receita de margem (spread) do período", "Spread"),
-    LinhaTemplate(4, "3111150", "Provisão de Receita",
+    LinhaTemplate(4, "3111150", "Receita de Venda de Dotz - Non Split Fee",
                   "Contrapartida — provisão de receita (spread)", "Spread"),
 ]
 
