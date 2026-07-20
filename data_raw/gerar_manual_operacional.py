@@ -22,10 +22,9 @@ CINZA = RGBColor(0x47, 0x55, 0x69)
 
 CAMINHO_PROJETO = (r"C:\Users\william.abreu_dotz\OneDrive - CBSM - Companhia Brasileira de "
                    r"Solucoes de Marketing\Área de Trabalho\Sistema_CBSM")
-CAMINHO_DADOS = CAMINHO_PROJETO + r"\data_raw\dados.xlsx"
+CAMINHO_DADOS = CAMINHO_PROJETO + r"\data_raw\dados.xlsm"
 CAMINHO_VENV = r"C:\Users\william.abreu_dotz\venvs\sistema_cbsm"
 URL_LOCAL = "http://localhost:8501"
-URL_REDE = "http://192.168.0.122:8501"
 
 
 def _titulo(doc, texto, nivel=1):
@@ -113,21 +112,27 @@ def montar_documento():
 
     # 1. Visão geral -----------------------------------------------------
     _titulo(doc, "1. Visão Geral")
-    _paragrafo(doc, "O dashboard roda como um app Streamlit nesta própria máquina. Dois endereços "
-                    "dão acesso a ele:")
+    _paragrafo(doc, "O dashboard roda como um app Streamlit nesta própria máquina.")
     _bullet(doc, URL_LOCAL, negrito_prefixo="Nesta máquina: ")
-    _bullet(doc, f"{URL_REDE}  (funciona só para quem está na mesma rede Wi-Fi/local)",
-           negrito_prefixo="Colegas na rede: ")
     _caixa_atencao(doc, "O app só fica acessível enquanto esta máquina estiver ligada e o processo "
                         "do Streamlit estiver rodando. Se o computador reiniciar ou hibernar, o "
                         "acesso cai até alguém subir o app de novo (seção 4).")
+    _caixa_atencao(doc, "Compartilhar por IP de rede local (\"Network URL\" que aparece ao subir o "
+                        "app) foi TESTADO e NÃO funciona de forma confiável: em rede doméstica o "
+                        "IP não é alcançável de fora; em rede Wi-Fi corporativa (testado na rede "
+                        "DOTZ, 20/07/2026) o isolamento de cliente do Wi-Fi bloqueia a conexão "
+                        "mesmo com o firewall liberado. Para o time acessar de verdade, o caminho "
+                        "é o Streamlit Community Cloud (URL pública, item ainda pendente de "
+                        "finalizar) ou o instantâneo HTML da seção 5.")
 
     # 2. Atualização de dados ---------------------------------------------
     _titulo(doc, "2. Atualizando os Dados Mensais")
     _paragrafo(doc, "Sempre que houver um novo fechamento (novo mês, ajuste na planilha, etc.), "
                     "siga estes passos, nesta ordem:")
-    _passo(doc, "Substitua o arquivo pela nova versão, MANTENDO o mesmo nome (dados.xlsx) e "
-                "MANTENDO todas as abas originais (mesmos nomes de aba).",
+    _passo(doc, "Substitua o arquivo pela nova versão, MANTENDO o mesmo nome (dados.xlsm) e "
+                "MANTENDO todas as abas originais (mesmos nomes de aba). Desde 20/07/2026 a base "
+                "é atualizada por macros dentro do próprio arquivo — feche o Excel depois de "
+                "rodar as macros para salvar, e antes de abrir o dashboard.",
           negrito_prefixo="Salve o novo Excel exatamente neste caminho: ")
     _codigo(doc, CAMINHO_DADOS)
     _passo(doc, "Abra o dashboard no navegador (endereço da seção 1).")
@@ -135,9 +140,11 @@ def montar_documento():
     _passo(doc, "Clique em \"Clear cache\".")
     _passo(doc, "Clique em \"Rerun\" (ou aperte a tecla R).")
     _caixa_atencao(doc, "Este passo de \"Clear cache\" + \"Rerun\" é obrigatório. O Streamlit guarda "
-                        "os resultados calculados em memória — só trocar o arquivo dados.xlsx NÃO "
+                        "os resultados calculados em memória — só trocar o arquivo dados.xlsm NÃO "
                         "atualiza os números na tela sozinho. Sem isso, todo mundo continua vendo "
                         "os valores antigos mesmo com o arquivo já trocado.")
+    _caixa_atencao(doc, "Se o arquivo estiver aberto no Excel no momento em que o Python tentar "
+                        "lê-lo, aparece erro de \"Permission denied\" — sempre feche o Excel antes.")
     _passo(doc, "Confira, na aba \"Visão Geral / Conciliação\", se o status voltou "
                 "\"🟢 Conciliação 100% OK\" e se os valores fazem sentido para o novo mês.")
 
@@ -158,11 +165,15 @@ def montar_documento():
     _passo(doc, "Abra o PowerShell.")
     _passo(doc, "Cole e rode o comando abaixo (entra na pasta do projeto):")
     _codigo(doc, f'cd "{CAMINHO_PROJETO}\\data_raw"')
-    _passo(doc, "Cole e rode o comando abaixo (sobe o app, acessível na rede):")
+    _passo(doc, "Cole e rode o comando abaixo (sobe o app):")
     _codigo(doc, f'& "{CAMINHO_VENV}\\Scripts\\python.exe" -m streamlit run app.py '
                  f'--server.address=0.0.0.0 --server.port 8501 --server.headless true')
     _passo(doc, "Deixe essa janela do PowerShell aberta — fechá-la derruba o app. Espere a "
                 "mensagem confirmando que o Streamlit subiu e teste o link.")
+    _caixa_atencao(doc, "Use sempre o caminho COMPLETO do Python (como no comando acima), nunca "
+                        "$env:USERPROFILE\\venvs\\... — em alguns computadores o login do Windows "
+                        "é um usuário diferente do dono da pasta (ex.: \"sd.client\"), e nesse "
+                        "caso essa variável aponta para a pasta errada e o comando falha.")
 
     # 5. Instantâneo HTML -----------------------------------------------------
     _titulo(doc, "5. Gerando um Instantâneo em HTML (para enviar por e-mail)")
@@ -175,7 +186,7 @@ def montar_documento():
     _passo(doc, "O arquivo é gerado em: " + CAMINHO_PROJETO + r"\dashboard.html")
     _caixa_atencao(doc, "Esse arquivo é um retrato fixo (sem os filtros interativos do app) e "
                         "contém os números reais da CBSM — trate-o com o mesmo cuidado do "
-                        "dados.xlsx: não é para subir no GitHub nem em lugar público.")
+                        "dados.xlsm: não é para subir no GitHub nem em lugar público.")
 
     # 6. Pedindo melhorias -----------------------------------------------------
     _titulo(doc, "6. Pedindo Ajustes ou Melhorias no App")
@@ -195,20 +206,26 @@ def montar_documento():
     _titulo(doc, "7. Onde Fica Cada Coisa")
     _tabela(doc, ["Item", "Onde"],
            [
-               ["Planilha de dados (dados.xlsx)", r"...\Sistema_CBSM\data_raw\dados.xlsx (local)"],
+               ["Planilha de dados (dados.xlsm)", r"...\Sistema_CBSM\data_raw\dados.xlsm (local)"],
+               ["Exports brutos do SAP (fonte das macros)", r"...\Sistema_CBSM\data_raw\sap_entradas\ (local)"],
                ["App do dashboard (código)", r"...\Sistema_CBSM\data_raw\app.py"],
                ["Cópia de backup na rede", r"G:\...\2.1 - Receita Diferida\Sistema_CBSM (espelho automático)"],
-               ["Backup do código-fonte (sem dados)", "GitHub privado — williamabreu-pixel/Receita-Diferida-CBSM"],
+               ["Backup do código-fonte (sem dados)", "GitHub público — williamabreu-pixel/Receita-Diferida-CBSM"],
                ["Este manual", r"...\Sistema_CBSM\Manual_Operacional_Sistema_CBSM.docx"],
                ["Documentação técnica completa", r"...\Sistema_CBSM\Documentacao_Sistema_CBSM.docx"],
            ])
 
     # 8. Segurança ------------------------------------------------------------
     _titulo(doc, "8. Observações de Segurança")
-    _bullet(doc, "O dados.xlsx (e o dashboard.html gerado a partir dele) contém números financeiros "
-               "reais da CBSM — nunca enviar para o GitHub, nem para ferramentas públicas na internet.")
-    _bullet(doc, "O link de rede (http://192.168.0.122:8501) só funciona para quem está na mesma "
-               "rede Wi-Fi/local — não é acessível pela internet.")
+    _bullet(doc, "O dados.xlsm, a pasta sap_entradas/ e o dashboard.html gerado a partir deles "
+               "contêm números financeiros reais da CBSM — nunca enviar para o GitHub, nem para "
+               "ferramentas públicas na internet (o .gitignore já bloqueia isso, mas confirme "
+               "antes de qualquer git add manual).")
+    _bullet(doc, "O repositório no GitHub é PÚBLICO — qualquer pessoa pode ver o código, mas "
+               "nenhum dado real está nele (só código e configuração).")
+    _bullet(doc, "Compartilhar o link de rede local (Network URL) não é confiável — já testamos "
+               "em rede doméstica e em rede corporativa e nenhuma funcionou para outra máquina "
+               "acessar (seção 1). Não vale a pena tentar de novo sem antes falar com a TI.")
     _bullet(doc, "Qualquer mudança de firewall ou de rede depende da TI — não tente liberar portas "
                "sozinho sem alinhar com eles.")
 

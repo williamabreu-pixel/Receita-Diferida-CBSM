@@ -128,13 +128,18 @@ def gerar():
     _titulo(doc, "3. Arquitetura")
     _paragrafo(doc, "Camadas do sistema (todas em data_raw/):", negrito=True)
     _tabela(doc, ["Arquivo", "Camada", "Responsabilidade"], [
-        ["config.py", "Config", "Caminho do Excel (dados.xlsx) e nomes das abas usadas."],
+        ["config.py", "Config", "Caminho do Excel (dados.xlsm desde 20/07/2026 — base passou a ser "
+         "atualizada por macros; antes era dados.xlsx) e nomes das abas usadas."],
         ["data_loader.py", "Ingestão (RAW)", "Lê balancete, Base Receita Motor, U1 e as abas de apoio "
          "(U1.4, U1.5, U1.6, Dados_Gráfico, Fat. Análise de Vendas). Tipagem robusta, sem alterar valores."],
         ["data_pipeline.py", "Negócio", "Agrega receita, monta a DRE, concilia por blocos "
          "(Quadros A/G), calcula passivo contábil × controle. Não altera o RAW."],
         ["gerador_lancamentos.py", "Negócio", "Gera lançamentos de ajuste (partida dobrada: "
-         "Débito=J se J>0, Crédito=-J se J<0) para os desvios encontrados."],
+         "Débito=J se J>0, Crédito=-J se J<0) para os 4 motores (Breakage, Custo do Produto, "
+         "Spread, Promodotz). Fonte do valor: o \"check\" de cada grupo de negócio da aba "
+         "Controle U1 (Passivo Total × Passivo Recalculado), pelo valor exato, sem zerar "
+         "diferenças pequenas — existe para que essa aba sempre feche, reconhecendo a receita "
+         "correspondente. Descrições de conta lidas do balancete (Trial Balance), não digitadas."],
         ["app.py", "Apresentação", "Dashboard Streamlit interativo — 9 abas (ver seção 5). Inclui "
          "gate de upload do dados.xlsx (_garantir_arquivo_excel) para funcionar também quando "
          "hospedado sem o arquivo local (Streamlit Community Cloud)."],
@@ -178,6 +183,14 @@ def gerar():
     _bullet(doc, "Contas contábeis são sempre TEXTO, nunca número (ex.: '3111160', não 3111160.0).")
     _bullet(doc, "Premissas contábeis (régua de breakage, CPD, provisão manual) são inputs explícitos "
                   "no Excel — nunca adivinhados pelo código.")
+    _bullet(doc, "Tolerâncias de conciliação são em CAMADAS, por decisão explícita do usuário "
+                  "(20/07/2026): o Passivo Diferido Total (quadros A/G em data_pipeline.conciliar) "
+                  "tem que fechar exato, tolerância R$ 1,00 (TOLERANCIA). Já as linhas por conta/"
+                  "motor (\"Receita/Breakage\", \"Receita/Custo do Produto\" etc.) e o check "
+                  "conta-a-conta da própria U1 toleram até R$ 999,00 (TOLERANCIA_CONTA) — ruído de "
+                  "arredondamento não deve travar a conciliação geral. Já o check por GRUPO de "
+                  "negócio na aba Controle U1 (app.EPS_CHECK_LINHA) usa uma terceira tolerância, "
+                  "R$ 10,00, independente das duas de cima.")
 
     # 5. Abas do dashboard
     _titulo(doc, "5. As 9 abas do dashboard (app.py)")
@@ -251,7 +264,9 @@ def gerar():
         ["Receita Promodotz", "R$ 1.075.793,82"],
         ["Passivo Circulante (CP)", "R$ 135.027.553,55"],
         ["Passivo Não Circulante (LP)", "R$ 61.294.153,27"],
-        ["Tolerância de conciliação", "R$ 1,00"],
+        ["Tolerância — Passivo Total (quadros A/G)", "R$ 1,00"],
+        ["Tolerância — por conta/motor e check U1", "R$ 999,00 (ver seção 4)"],
+        ["Tolerância — check por grupo (aba Controle U1)", "R$ 10,00"],
     ])
 
     # 8. Ambiente
@@ -262,8 +277,16 @@ def gerar():
                   "— com pandas, openpyxl, streamlit, plotly, python-docx e Pillow instalados.")
     _bullet(doc, "Rodar o dashboard: abrir PowerShell na pasta data_raw e executar "
                   "\"%USERPROFILE%\\venvs\\sistema_cbsm\\Scripts\\streamlit.exe run app.py\".")
-    _bullet(doc, "O arquivo de dados deve se chamar dados.xlsx e estar na mesma pasta dos .py "
-                  "(data_raw). Fechar o Excel antes de eu (ou o app) precisar ler o arquivo.")
+    _bullet(doc, "O arquivo de dados deve se chamar dados.xlsm (desde 20/07/2026 — antes era "
+                  "dados.xlsx) e estar na mesma pasta dos .py (data_raw). Fechar o Excel antes de "
+                  "eu (ou o app) precisar ler o arquivo — o Python recebe \"Permission denied\" "
+                  "se o arquivo estiver aberto.")
+    _bullet(doc, "Cuidado ao reabrir um terminal novo: o login do Windows na máquina pode ser um "
+                  "usuário diferente do dono da pasta OneDrive (ex.: login local \"sd.client\" "
+                  "com OneDrive logado como \"william.abreu_dotz\") — nesse caso "
+                  "$env:USERPROFILE no PowerShell resolve para a pasta errada e o caminho do "
+                  ".venv (%USERPROFILE%\\venvs\\sistema_cbsm) não é encontrado. Usar o caminho "
+                  "completo (C:\\Users\\william.abreu_dotz\\venvs\\sistema_cbsm\\...) evita o problema.")
 
     # 9. Publicação e acesso
     _titulo(doc, "9. Publicação e acesso")
@@ -289,6 +312,13 @@ def gerar():
                   "da máquina que roda o app — um IP de rede local (ex.: 192.168.x.x) não é "
                   "alcançável de fora dessa rede (nem por VPN, nem de outro escritório). Também "
                   "depende da máquina ficar ligada com o processo do Streamlit rodando.")
+    _bullet(doc, "Testado em 20/07/2026 na rede Wi-Fi corporativa (\"DOTZ 6\", IP 172.31.10.87) — "
+                  "MESMO ASSIM outras máquinas não conseguiram conectar (ERR_CONNECTION_TIMED_OUT), "
+                  "apesar do firewall liberado e do processo escutando em todas as interfaces. "
+                  "Causa provável: isolamento de cliente (AP/Client Isolation) no Wi-Fi corporativo "
+                  "— uma proteção de rede que a TI normalmente não desativa, e que está fora do "
+                  "controle deste projeto. Reforça o Streamlit Community Cloud como o caminho "
+                  "correto para acesso de verdade pelo time.")
     _paragrafo(doc, "Streamlit Community Cloud (URL pública, independe de rede/máquina ligada):",
                negrito=True)
     _bullet(doc, "app.py recebeu um gate de upload (_garantir_arquivo_excel): se dados.xlsx não "
@@ -310,14 +340,18 @@ def gerar():
                   "corretamente (ver seção 9); é o passo que falta para ter uma URL pública "
                   "funcionando, independente de rede local ou da máquina ligada.")
     _bullet(doc, "Segundo tipo de lançamento de ajuste (reclassificação CP × LP) em "
-                  "gerador_lancamentos.py — agora que o split CP/LP está disponível na aba "
-                  "Passivo Diferido, falta decidir se/como gerar o lançamento contábil correspondente.")
+                  "gerador_lancamentos.py — os 4 motores de receita já têm lançamento completo "
+                  "(20/07/2026), mas a reclassificação entre Circulante e Não Circulante ainda "
+                  "não tem lançamento próprio; falta decidir se/como gerar essa entrada.")
     _bullet(doc, "Substituir o logo placeholder (gerar_logo_placeholder.py) pelo arquivo oficial "
                   "da marca (logo_dotz.png / icone_dotz.png) assim que exportado — hoje é só uma "
                   "aproximação, sem a tipografia customizada do \"Z\" do logo real.")
     _bullet(doc, "Limpar os scripts de investigação usados para descobrir a fórmula do CP/LP "
                   "(inspecionar_*.py, testar_cp_lp.py, validar_cp_lp_real.py, *_dump.txt) — já "
                   "excluídos do Git via .gitignore, mas ainda presentes no disco/pasta de rede.")
+    _bullet(doc, "Alguns commits de 20/07/2026 ficaram salvos só localmente (git push falhou por "
+                  "instabilidade de rede/internet na máquina) — confirmar no GitHub se todos os "
+                  "commits do dia chegaram ao repositório remoto e reenviar (git push) se não.")
 
     # 11. Histórico de atualizações
     _titulo(doc, "11. Histórico de atualizações")
@@ -326,6 +360,23 @@ def gerar():
                      "abaixo são fixas no texto — não usar datetime.date.today() para elas, senão "
                      "o histórico troca de data toda vez que o documento é regerado.",
                italico=True, cor=CINZA)
+    _bullet(doc, "Base de dados migrada para dados.xlsm (a planilha passou a ser atualizada por "
+                  "macros/Power Query, alimentada pelos exports brutos do SAP em "
+                  "data_raw/sap_entradas/) — .gitignore atualizado para *.xlsm e sap_entradas/ "
+                  "antes de qualquer outra coisa (as 39 abas são idênticas às do dados.xlsx "
+                  "anterior, nenhuma mudança estrutural necessária além do nome do arquivo). "
+                  "Tolerâncias de conciliação reorganizadas em camadas (R$ 1 para o Passivo "
+                  "Total, R$ 999 para linhas por conta/motor e check da U1, R$ 10 para o check "
+                  "por grupo na aba Controle U1). gerador_lancamentos.py reescrito: cobre os 4 "
+                  "motores (antes só Breakage e Promodotz), corrigido um bug de partida dobrada "
+                  "(as 2 linhas de cada lançamento caíam sempre do mesmo lado, débito nunca "
+                  "fechava com crédito), fonte do valor passou a ser o check por grupo da aba "
+                  "Controle U1 (não mais o pequeno desvio da conciliação), sempre pelo valor "
+                  "exato, e as descrições de conta foram conferidas contra o balancete real. "
+                  "Coluna J_desvio removida da exibição/exportação da aba Lançamentos. Testada "
+                  "publicação em rede Wi-Fi corporativa (DOTZ 6) — bloqueada por isolamento de "
+                  "cliente do Wi-Fi, fora do controle deste projeto; reforça o Streamlit "
+                  "Community Cloud como caminho definitivo (ainda pendente).", "20/07/2026 — ")
     _bullet(doc, "Split CP/LP corrigido com a fórmula real da U1 - Movimentação (lida via "
                   "openpyxl), eliminando a dependência da aba Dados_Gráfico e corrigindo um bug "
                   "pré-existente do dashboard (Netpoints/Dotz Pay entrando indevidamente no "
