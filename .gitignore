@@ -1,7 +1,10 @@
 # Dados reais — nunca versionar (contém números financeiros da CBSM)
 data_raw/dados.xlsx
+data_raw/dados.xlsm
+data_raw/sap_entradas/
 *.xlsx
 *.xls
+*.xlsm
 
 # Artefatos gerados (derivados de dados.xlsx, contêm números reais)
 dashboard.html
