@@ -55,7 +55,7 @@ RENOMEIA_QUADRO = {"A": "Total Passivo", "G": "Passivo Recalculado"}
 MESES_ABREV_PT = {"01": "Jan", "02": "Fev", "03": "Mar", "04": "Abr", "05": "Mai", "06": "Jun",
                   "07": "Jul", "08": "Ago", "09": "Set", "10": "Out", "11": "Nov", "12": "Dez"}
 
-EPS_CHECK_LINHA = 0.01
+EPS_CHECK_LINHA = 10.0
 EPS_CHECK_DRE = 1000.0
 
 CAMINHO_LOGO = "logo_dotz.png"

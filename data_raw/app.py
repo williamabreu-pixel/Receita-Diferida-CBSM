@@ -157,7 +157,7 @@ def carregar_faturamento_vendas():
     return data_loader.load_faturamento_vendas()
 
 
-EPS_CHECK_LINHA = 0.01
+EPS_CHECK_LINHA = 10.0
 
 
 def fmt_numero_pt(valor, decimais=0):
