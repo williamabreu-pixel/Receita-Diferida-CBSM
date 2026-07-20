@@ -623,7 +623,7 @@ def aba_lancamentos_html(res):
     for a in diario.alertas:
         partes.append(alerta_html(a, "warning"))
     df = diario.lancamentos.copy()
-    for col in ("debito", "credito", "J_desvio"):
+    for col in ("debito", "credito"):
         df[col] = df[col].map(fmt_brl)
     partes.append(tabela_html(df))
     partes.append(f"<p class='caption'>Totais — Débito: {fmt_brl(diario.total_debito)} | "

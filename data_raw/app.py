@@ -372,7 +372,7 @@ def render_lancamentos(res):
     for alerta in diario.alertas:
         st.warning(alerta)
     df = diario.lancamentos.copy()
-    for col in ("debito", "credito", "J_desvio"):
+    for col in ("debito", "credito"):
         df[col] = df[col].map(fmt_brl)
     st.dataframe(df, width="stretch", hide_index=True)
     st.caption(f"Totais — Débito: {fmt_brl(diario.total_debito)}  |  Crédito: {fmt_brl(diario.total_credito)}")

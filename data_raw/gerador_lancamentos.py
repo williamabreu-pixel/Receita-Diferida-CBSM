@@ -99,7 +99,7 @@ def gerar_diario(res, competencia_fechamento=None):
             "lancamento": t.lancamento, "conta": t.conta,
             "descricao_conta": t.descricao_conta, "historico": t.historico,
             "debito": round(debito, 2), "credito": round(credito, 2),
-            "J_desvio": round(j, 2), "fonte": t.bloco_fonte,
+            "fonte": t.bloco_fonte,
         })
     df = pd.DataFrame(linhas)
 
