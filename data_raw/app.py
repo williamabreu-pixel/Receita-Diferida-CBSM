@@ -101,10 +101,33 @@ def fmt_brl(valor):
 
 
 def to_excel_bytes(df, sheet_name="Dados"):
+    """Exporta um DataFrame para .xlsx com formatação básica (cabeçalho em
+    negrito com fundo, congelado, e largura de coluna ajustada ao conteúdo) —
+    usado em todos os botões "Exportar (Excel)" do app, para nunca cair no
+    CSV cru do ícone padrão do st.dataframe."""
+    from openpyxl.styles import Alignment, Font, PatternFill
+
     buffer = io.BytesIO()
+    aba = sheet_name[:31]
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name=sheet_name[:31])
+        df.to_excel(writer, index=False, sheet_name=aba)
+        ws = writer.sheets[aba]
+        fonte_cabecalho = Font(bold=True, color="FFFFFF")
+        preenchimento_cabecalho = PatternFill(fill_type="solid", start_color="0F172A", end_color="0F172A")
+        for cel in ws[1]:
+            cel.font = fonte_cabecalho
+            cel.fill = preenchimento_cabecalho
+            cel.alignment = Alignment(vertical="center")
+        ws.freeze_panes = "A2"
+        for col_idx, col in enumerate(df.columns, start=1):
+            maior = max([len(str(col))] + [len(str(v)) for v in df[col].head(200)])
+            ws.column_dimensions[ws.cell(row=1, column=col_idx).column_letter].width = min(maior + 2, 60)
     return buffer.getvalue()
+
+
+def _botao_exportar_excel(df, nome_arquivo, sheet_name="Dados", label="📥 Exportar (Excel)", key=None):
+    st.download_button(label, data=to_excel_bytes(df, sheet_name),
+                       file_name=nome_arquivo, mime=MIME_XLSX, key=key)
 
 
 @st.cache_data(show_spinner="Processando pipeline contábil...")
@@ -258,8 +281,9 @@ RENOMEIA_QUADRO = {"A": "Total Passivo", "G": "Passivo Recalculado"}
 
 def render_conciliacao(res):
     st.subheader("Conciliação")
-    df = res.conciliacao.copy()
-    df["quadro"] = df["quadro"].map(lambda q: RENOMEIA_QUADRO.get(q, q))
+    bruto = res.conciliacao.copy()
+    bruto["quadro"] = bruto["quadro"].map(lambda q: RENOMEIA_QUADRO.get(q, q))
+    df = bruto.copy()
     for col in ("controle", "contabil", "delta"):
         df[col] = df[col].map(fmt_brl)
 
@@ -267,6 +291,7 @@ def render_conciliacao(res):
         return "color:#009F3C;font-weight:600;" if v == "OK" else "color:#AF1010;font-weight:600;"
     st.dataframe(df.style.map(cor, subset=["status"]),
                  width="stretch", hide_index=True)
+    _botao_exportar_excel(bruto, "conciliacao.xlsx", "Conciliacao", key="xlsx_conciliacao")
 
 
 def _formatar_hover_barras(fig):
