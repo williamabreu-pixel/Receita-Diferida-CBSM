@@ -101,10 +101,12 @@ def fmt_brl(valor):
 
 
 def to_excel_bytes(df, sheet_name="Dados"):
-    """Exporta um DataFrame para .xlsx com formatação básica (cabeçalho em
-    negrito com fundo, congelado, e largura de coluna ajustada ao conteúdo) —
-    usado em todos os botões "Exportar (Excel)" do app, para nunca cair no
-    CSV cru do ícone padrão do st.dataframe."""
+    """Exporta um DataFrame para .xlsx formatado: cabeçalho em negrito/fundo
+    escuro e congelado, colunas numéricas com separador de milhar e 2 casas
+    decimais, linha "Total"/"Total acumulado" (1ª coluna) em negrito com
+    fundo destacado, e largura de coluna ajustada ao conteúdo — usado em
+    todos os botões "Exportar (Excel)" do app, para nunca cair no CSV cru
+    do ícone padrão do st.dataframe."""
     from openpyxl.styles import Alignment, Font, PatternFill
 
     buffer = io.BytesIO()
@@ -112,6 +114,7 @@ def to_excel_bytes(df, sheet_name="Dados"):
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name=aba)
         ws = writer.sheets[aba]
+
         fonte_cabecalho = Font(bold=True, color="FFFFFF")
         preenchimento_cabecalho = PatternFill(fill_type="solid", start_color="0F172A", end_color="0F172A")
         for cel in ws[1]:
@@ -119,6 +122,27 @@ def to_excel_bytes(df, sheet_name="Dados"):
             cel.fill = preenchimento_cabecalho
             cel.alignment = Alignment(vertical="center")
         ws.freeze_panes = "A2"
+
+        def _eh_coluna_numerica(serie):
+            valores = serie.dropna()
+            if valores.empty:
+                return False
+            return all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in valores)
+
+        colunas_numericas = [i for i, col in enumerate(df.columns, start=1)
+                            if _eh_coluna_numerica(df[col])]
+        fonte_total = Font(bold=True, color="0F172A")
+        preenchimento_total = PatternFill(fill_type="solid", start_color="EEF2FF", end_color="EEF2FF")
+        for row_idx in range(2, ws.max_row + 1):
+            for col_idx in colunas_numericas:
+                ws.cell(row=row_idx, column=col_idx).number_format = "#,##0.00"
+            primeira_celula = str(ws.cell(row=row_idx, column=1).value or "").strip()
+            if primeira_celula.startswith("Total"):
+                for col_idx in range(1, len(df.columns) + 1):
+                    cel = ws.cell(row=row_idx, column=col_idx)
+                    cel.font = fonte_total
+                    cel.fill = preenchimento_total
+
         for col_idx, col in enumerate(df.columns, start=1):
             maior = max([len(str(col))] + [len(str(v)) for v in df[col].head(200)])
             ws.column_dimensions[ws.cell(row=1, column=col_idx).column_letter].width = min(maior + 2, 60)
