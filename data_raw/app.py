@@ -377,6 +377,7 @@ def render_dre(res):
         tab = dre.copy()
         tab["receita_reconhecida"] = tab["receita_reconhecida"].map(fmt_brl)
         st.dataframe(tab, width="stretch", hide_index=True)
+        _botao_exportar_excel(dre, "dre_receita_reconhecida.xlsx", "DRE", key="xlsx_dre")
         st.metric("Receita Total Reconhecida", fmt_brl(dre["receita_reconhecida"].sum()))
 
 
@@ -463,18 +464,22 @@ def render_aba_receita_motor():
     resumo["competencia"] = resumo["competencia"].map(fmt_competencia_pt)
     resumo["valor"] = resumo["valor"].map(fmt_brl)
     st.dataframe(resumo, width="stretch", hide_index=True)
+    _botao_exportar_excel(agg, "receita_por_categoria_resumo.xlsx", "Resumo", key="xlsx_receita_categoria_resumo")
 
     st.markdown("**🔍 Detalhe por competência × categoria** — clique para expandir e ver as contas que compõem cada total.")
-    for _, linha in agg.iterrows():
+    for i, (_, linha) in enumerate(agg.iterrows()):
         tipo = TIPO_DIFERIMENTO.get(linha["categoria"], "A definir")
         titulo = (f"{fmt_competencia_pt(linha['competencia'])} — {linha['categoria']} — {fmt_brl(linha['valor'])} "
                   f"({int(linha['linhas'])} contas)")
         with st.expander(titulo):
             st.caption(f"Tipo de diferimento: **{tipo}**")
-            detalhe = filtrado[(filtrado["competencia"] == linha["competencia"])
-                               & (filtrado["categoria"] == linha["categoria"])].copy()
+            detalhe_bruto = filtrado[(filtrado["competencia"] == linha["competencia"])
+                                     & (filtrado["categoria"] == linha["categoria"])][["conta", "descricao", "valor"]]
+            detalhe = detalhe_bruto.copy()
             detalhe["valor"] = detalhe["valor"].map(fmt_brl)
-            st.dataframe(detalhe[["conta", "descricao", "valor"]], width="stretch", hide_index=True)
+            st.dataframe(detalhe, width="stretch", hide_index=True)
+            _botao_exportar_excel(detalhe_bruto, "receita_categoria_detalhe.xlsx", "Detalhe",
+                                 key=f"xlsx_receita_categoria_detalhe_{i}")
 
 
 def render_aba_passivo_diferido(res):
@@ -495,10 +500,12 @@ def render_aba_passivo_diferido(res):
                           annotations=[dict(text="Passivo Diferido", x=0.5, y=0.5, showarrow=False, font_size=14)])
         st.plotly_chart(fig, width="stretch", theme=None, key="chart_rosca_passivo_diferido")
     with c2:
-        tabela = blocos[["bloco", "passivo", "receita"]].copy()
+        tabela_bruta = blocos[["bloco", "passivo", "receita"]]
+        tabela = tabela_bruta.copy()
         tabela["passivo"] = tabela["passivo"].map(fmt_brl)
         tabela["receita"] = tabela["receita"].map(fmt_brl)
         st.dataframe(tabela, width="stretch", hide_index=True)
+        _botao_exportar_excel(tabela_bruta, "passivo_diferido.xlsx", "Passivo", key="xlsx_passivo_diferido")
         st.metric("Passivo Total (Controle U1)", fmt_brl(res.passivo_total_controle))
 
     st.divider()
@@ -559,6 +566,8 @@ def render_aba_faturamento_pontos():
     tab_categoria["quantidade"] = tab_categoria["quantidade"].map(fmt_numero_pt)
     tab_categoria.columns = ["Categoria", "Valor Vendas", "Quantidade de Pontos"]
     st.dataframe(tab_categoria, width="stretch", hide_index=True)
+    _botao_exportar_excel(resumo_categoria, "faturamento_por_categoria.xlsx", "Faturamento",
+                         key="xlsx_faturamento_categoria")
 
     with st.expander("📅 Detalhe por competência × categoria"):
         tab_comp_cat = resumo_comp_cat.copy()
@@ -584,7 +593,7 @@ def render_aba_placeholder(nome):
     st.info(f"🚧 Aba **{nome}** ainda em construção — será preenchida na próxima etapa.")
 
 
-def render_cartao_grupo_u1(g):
+def render_cartao_grupo_u1(g, indice=0):
     divergente = abs(g["check"]) > EPS_CHECK_LINHA
     status = "🔴" if divergente else "🟢"
     with st.container(border=True):
@@ -597,12 +606,15 @@ def render_cartao_grupo_u1(g):
         c4.metric("Receita", fmt_brl(g["receita"]))
 
         with st.expander(f"🔍 Expandir a nível conta contábil ({len(g['detalhe'])} contas)"):
-            detalhe = g["detalhe"].copy()
+            detalhe_bruto = g["detalhe"]
+            detalhe = detalhe_bruto.copy()
             for col in ("passivo_cp", "passivo_lp", "passivo_total", "check", "passivo_recalculado", "receita"):
                 detalhe[col] = detalhe[col].map(fmt_brl)
             detalhe.columns = ["Conta", "Descrição", "Passivo CP", "Passivo LP", "Passivo Total",
                                "Check", "Passivo Recalculado", "Receita"]
             st.dataframe(detalhe, width="stretch", hide_index=True)
+            _botao_exportar_excel(detalhe_bruto, "controle_u1_detalhe.xlsx", "Detalhe",
+                                 key=f"xlsx_controle_u1_{indice}")
 
 
 def render_aba_controle_u1():
@@ -622,8 +634,8 @@ def render_aba_controle_u1():
     else:
         st.success(f"🟢 Todos os {len(grupos)} grupos conciliados dentro da tolerância.")
 
-    for g in grupos:
-        render_cartao_grupo_u1(g)
+    for i, g in enumerate(grupos):
+        render_cartao_grupo_u1(g, indice=i)
 
 
 def _ordenar_serie_desc(dados):
@@ -636,7 +648,7 @@ def _ordenar_serie_desc(dados):
     return dados.loc[ordem].reset_index(drop=True)
 
 
-def render_tabela_serie_atuarial(dados):
+def render_tabela_serie_atuarial(dados, chave="serie"):
     dados = _ordenar_serie_desc(dados)
     exibicao = pd.DataFrame(index=dados.index)
     for col in dados.columns:
@@ -649,6 +661,7 @@ def render_tabela_serie_atuarial(dados):
         return [cor] * len(row)
 
     st.dataframe(exibicao.style.apply(estilo_total, axis=1), width="stretch", height=460, hide_index=True)
+    _botao_exportar_excel(dados, "serie_atuarial.xlsx", "Serie", key=f"xlsx_serie_atuarial_{chave}")
 
 
 EPS_CHECK_DRE = 1000.0  # tolerância generosa: ruído de arredondamento na planilha é ~R$33
@@ -705,6 +718,8 @@ def render_check_dre(resumo, categoria_dre):
         return [cor] * len(row)
 
     st.dataframe(exibicao.style.apply(estilo_total, axis=1), width="stretch", hide_index=True)
+    _botao_exportar_excel(tabela_completa, "check_dre.xlsx", "Check DRE",
+                         key=f"xlsx_check_dre_{categoria_dre}")
 
     diverg_total = abs(float(linha_acumulada["Check"].iloc[0]))
     if diverg_total > EPS_CHECK_DRE:
@@ -731,6 +746,7 @@ def render_quadro_receita_atual(dados, chave, categoria_dre=None):
         return [cor] * len(row)
 
     st.dataframe(exibicao.style.apply(estilo_total, axis=1), width="stretch", hide_index=True)
+    _botao_exportar_excel(resumo, "receita_a_reconhecer.xlsx", "Receita", key=f"xlsx_receita_atual_{chave}")
 
     if "Total" in resumo.columns:
         total_geral = float(resumo.loc[resumo["Safra"] != "Total", "Total"].sum())
@@ -758,9 +774,12 @@ def render_aba_serie_atuarial(nome_aba, col_ancora=1, categoria_dre=None):
     render_quadro_receita_atual(dados, chave=nome_aba, categoria_dre=categoria_dre)
     st.caption(f"{len(dados)} linhas (safras Ano × Mês + subtotais anuais em destaque) — "
                f"ordem decrescente, 2026 primeiro.")
-    render_tabela_serie_atuarial(dados)
+    render_tabela_serie_atuarial(dados, chave=nome_aba)
     with st.expander("🔍 Ver grade completa (fiel ao Excel, sem tratamento)"):
-        st.dataframe(carregar_aba_bruta(nome_aba), width="stretch", hide_index=True)
+        grade_bruta = carregar_aba_bruta(nome_aba)
+        st.dataframe(grade_bruta, width="stretch", hide_index=True)
+        _botao_exportar_excel(grade_bruta, "grade_completa.xlsx", "Grade",
+                             key=f"xlsx_grade_{nome_aba}")
 
 
 def render_aba_u1_6():
@@ -777,17 +796,22 @@ def render_aba_u1_6():
     exibicao["valor_faturado"] = mensal["valor_faturado"].map(fmt_brl)
     exibicao.columns = ["Ano", "Mês", "Pontos Resgatados", "Preço Negociado", "Valor Faturado"]
     st.dataframe(exibicao, width="stretch", hide_index=True)
+    _botao_exportar_excel(mensal, "u1_6_emissao_resgates.xlsx", "U1.6", key="xlsx_u1_6_mensal")
     if meta["total_resgate"] is not None:
         st.metric("Total resgatado no período (todos os parceiros exceto BB)", fmt_brl(meta["total_resgate"]))
 
     if meta["tie_in"]:
         st.markdown("**Tie-in Contábil × Analyser**")
-        tie_in_df = pd.DataFrame(
-            [{"Item": k, "Valor": fmt_brl(v)} for k, v in meta["tie_in"].items()])
+        tie_in_bruto = pd.DataFrame(list(meta["tie_in"].items()), columns=["Item", "Valor"])
+        tie_in_df = tie_in_bruto.copy()
+        tie_in_df["Valor"] = tie_in_df["Valor"].map(fmt_brl)
         st.dataframe(tie_in_df, width="stretch", hide_index=True)
+        _botao_exportar_excel(tie_in_bruto, "u1_6_tie_in.xlsx", "Tie-in", key="xlsx_u1_6_tiein")
 
     with st.expander("🔍 Ver grade completa (fiel ao Excel, sem tratamento)"):
-        st.dataframe(carregar_aba_bruta(config.ABA_U1_6_RESGATES), width="stretch", hide_index=True)
+        grade_bruta_u16 = carregar_aba_bruta(config.ABA_U1_6_RESGATES)
+        st.dataframe(grade_bruta_u16, width="stretch", hide_index=True)
+        _botao_exportar_excel(grade_bruta_u16, "grade_completa_u1_6.xlsx", "Grade", key="xlsx_grade_u1_6")
 
 
 def render_quadro_expectativa_realizacao():
@@ -808,6 +832,8 @@ def render_quadro_expectativa_realizacao():
         return [cor] * len(row)
 
     st.dataframe(exibicao.style.apply(estilo_total, axis=1), width="stretch", hide_index=True)
+    _botao_exportar_excel(tabela, "expectativa_realizacao.xlsx", "Expectativa",
+                         key="xlsx_expectativa_realizacao")
 
     longo = tabela[tabela["vintage"] != "Total"].melt(
         id_vars="vintage", value_vars=anos, var_name="Ano de Realização", value_name="Valor")
@@ -836,6 +862,8 @@ def render_aba_dados_grafico():
         tab["em_31_12_2025"] = tab["em_31_12_2025"].map(fmt_brl)
         tab.columns = ["Item", "Em 30/06/2026", "Em 31/12/2025"]
         st.dataframe(tab, width="stretch", hide_index=True)
+        _botao_exportar_excel(consolidado, "dados_grafico_consolidado.xlsx", "Consolidado",
+                             key="xlsx_dados_grafico_consolidado")
     with c2:
         st.markdown("**Receita Diferida CP/LP** (bate com o Passivo Total Controle)")
         tab2 = cp_lp.copy()
@@ -844,9 +872,14 @@ def render_aba_dados_grafico():
             tab2[col] = tab2[col].map(fmt_brl)
         tab2.columns = ["Categoria", "Total", "CBSM", "Netpoints", "Dotz Pay", "Total Ajustado"]
         st.dataframe(tab2, width="stretch", hide_index=True)
+        _botao_exportar_excel(cp_lp, "dados_grafico_cp_lp.xlsx", "CP_LP",
+                             key="xlsx_dados_grafico_cplp")
 
     with st.expander("🔍 Ver grade completa (fiel ao Excel, sem tratamento — inclui dados de outros gráficos)"):
-        st.dataframe(carregar_aba_bruta(config.ABA_DADOS_GRAFICO), width="stretch", hide_index=True)
+        grade_bruta_dg = carregar_aba_bruta(config.ABA_DADOS_GRAFICO)
+        st.dataframe(grade_bruta_dg, width="stretch", hide_index=True)
+        _botao_exportar_excel(grade_bruta_dg, "grade_completa_dados_grafico.xlsx", "Grade",
+                             key="xlsx_grade_dados_grafico")
 
 
 def _garantir_arquivo_excel():
