@@ -124,6 +124,11 @@ def montar_documento():
                         "mesmo com o firewall liberado. Para o time acessar de verdade, o caminho "
                         "é o Streamlit Community Cloud (URL pública, item ainda pendente de "
                         "finalizar) ou o instantâneo HTML da seção 5.")
+    _paragrafo(doc, "Exportando tabelas: toda tabela do dashboard tem um botão \"📥 Exportar "
+                    "(Excel)\" logo abaixo dela — gera um .xlsx já formatado (cabeçalho em "
+                    "negrito, largura de coluna ajustada). Use sempre esse botão, não o ícone "
+                    "pequeno de download que aparece ao passar o mouse sobre a tabela — esse "
+                    "ícone é do próprio Streamlit e só exporta em CSV sem formatação.")
 
     # 2. Atualização de dados ---------------------------------------------
     _titulo(doc, "2. Atualizando os Dados Mensais")

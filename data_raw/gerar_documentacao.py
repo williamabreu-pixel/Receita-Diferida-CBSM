@@ -141,8 +141,12 @@ def gerar():
          "diferenças pequenas — existe para que essa aba sempre feche, reconhecendo a receita "
          "correspondente. Descrições de conta lidas do balancete (Trial Balance), não digitadas."],
         ["app.py", "Apresentação", "Dashboard Streamlit interativo — 9 abas (ver seção 5). Inclui "
-         "gate de upload do dados.xlsx (_garantir_arquivo_excel) para funcionar também quando "
-         "hospedado sem o arquivo local (Streamlit Community Cloud)."],
+         "gate de upload do dados.xlsx/dados.xlsm (_garantir_arquivo_excel) para funcionar também "
+         "quando hospedado sem o arquivo local (Streamlit Community Cloud). Toda tabela do app tem "
+         "um botão \"📥 Exportar (Excel)\" (_botao_exportar_excel/to_excel_bytes) que gera .xlsx "
+         "formatado (cabeçalho em negrito, coluna congelada, largura ajustada) — não depende do "
+         "ícone de CSV nativo do st.dataframe, que continua existindo ao lado (limitação do "
+         "próprio Streamlit, não removível pelo código)."],
         ["export_html.py", "Apresentação (opcional)", "Snapshot HTML estático AUTOCONTIDO (logo e "
          "Plotly.js embutidos em base64, funciona offline) espelhando as 9 abas do app.py, com as "
          "mesmas cores Dotz e a mesma base de receita (DRE). Só quando pedido explicitamente — o "
@@ -349,9 +353,6 @@ def gerar():
     _bullet(doc, "Limpar os scripts de investigação usados para descobrir a fórmula do CP/LP "
                   "(inspecionar_*.py, testar_cp_lp.py, validar_cp_lp_real.py, *_dump.txt) — já "
                   "excluídos do Git via .gitignore, mas ainda presentes no disco/pasta de rede.")
-    _bullet(doc, "Alguns commits de 20/07/2026 ficaram salvos só localmente (git push falhou por "
-                  "instabilidade de rede/internet na máquina) — confirmar no GitHub se todos os "
-                  "commits do dia chegaram ao repositório remoto e reenviar (git push) se não.")
 
     # 11. Histórico de atualizações
     _titulo(doc, "11. Histórico de atualizações")
@@ -360,6 +361,17 @@ def gerar():
                      "abaixo são fixas no texto — não usar datetime.date.today() para elas, senão "
                      "o histórico troca de data toda vez que o documento é regerado.",
                italico=True, cor=CINZA)
+    _bullet(doc, "to_excel_bytes (app.py) passou a formatar todo .xlsx exportado (cabeçalho em "
+                  "negrito com fundo escuro, coluna congelada, largura ajustada ao conteúdo). "
+                  "Novo helper _botao_exportar_excel adicionado a TODAS as tabelas do dashboard "
+                  "que ainda só tinham o ícone de CSV nativo do st.dataframe (Conciliação, DRE, "
+                  "Receita por Categoria — resumo e detalhe —, Passivo Diferido, Faturamento por "
+                  "categoria, Controle U1 por grupo, série atuarial e check DRE de U1.4/U1.5, "
+                  "grades brutas, U1.6 e Dados_Gráfico) — 48 botões de exportação no total. "
+                  "Validado de ponta a ponta via streamlit.testing.v1.AppTest (roda o app sem "
+                  "navegador): 0 exceções nas 9 abas. O ícone de CSV nativo continua aparecendo "
+                  "ao lado — é do próprio Streamlit, não há como removê-lo pelo código.",
+              "22/07/2026 — ")
     _bullet(doc, "Base de dados migrada para dados.xlsm (a planilha passou a ser atualizada por "
                   "macros/Power Query, alimentada pelos exports brutos do SAP em "
                   "data_raw/sap_entradas/) — .gitignore atualizado para *.xlsm e sap_entradas/ "
